@@ -167,7 +167,7 @@ def ACO_TCP(X:np.ndarray,Y:np.ndarray) -> tuple:
  
     ## 输出算法的运行时间和相关的最短、最长和平均路径长度
     print("算法的运行时间为",Time_Gap, "秒")
-    print("最短环游路径的长度为：", [0, MaxIteration-1])
+    print("最短环游路径的长度为：", RouteRecordMin[0, MaxIteration-1])
     print("最长环游路径的长度为：", RouteRecordMax[0, MaxIteration-1])
     print("平均环游路径的长度为：", RouteRecordAve[0, MaxIteration-1])
 
