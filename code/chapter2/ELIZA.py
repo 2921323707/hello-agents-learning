@@ -33,6 +33,11 @@ rules = {
         "How did your father make you feel?",
         "What has your father taught you?"
     ],
+    r'.* work .*': [
+        "What do you do for a living?",
+        "Why do you work?",
+        "What do you do for fun?"
+    ],
     r'.*': [
         "Please tell me more.",
         "Let's change focus a bit... Tell me about your family.",
