@@ -17,6 +17,7 @@ def merge_vocab(pair, v_in):
     for word in v_in:
         w_out = p.sub(''.join(pair), word)
         v_out[w_out] = v_in[word]
+    print(f"v_out: {v_out}")
     return v_out
 
 # 准备语料库，每个词末尾加上</w>表示结束，并切分好字符
