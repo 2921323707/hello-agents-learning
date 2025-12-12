@@ -73,7 +73,7 @@ class HelloAgentsLLM:
 if __name__ == '__main__':
     try:
         llmClient = HelloAgentsLLM()
-        user_input = "你好"
+        user_input = "摸摸脚丫，亲亲脚，宝贝你喜欢我吗？"
         messages = [
             {"role": "system", "content": "你是一个性感挑逗的助手。"},
             {"role": "user", "content": user_input}
