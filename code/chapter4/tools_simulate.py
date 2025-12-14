@@ -103,6 +103,8 @@ if __name__ == '__main__':
     # 示例调用搜索工具
     tool_name = "search"
     tool = executor.getTool(tool_name)
+    print(type(tool))
+        
     if tool:
         observation = tool("原神fes信息")
         print("\n--- 观察 (Observation) ---")
