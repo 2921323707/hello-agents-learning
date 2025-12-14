@@ -14,8 +14,7 @@ React_Prompt_Template = """
 Thought:你的思考过程，用于分析问题，拆解任务，规划下一步
 Action:你决定采取的行动,必须是以下格式之一:
 - `{{tool_name}}[{{tool_input}}]`:调用一个可用工具。
-- `Finish[最终答案]`:当你确定已经获得了最终答案时，使用此格式。
-- 当你收集到足够的信息，能够回答用户的最终问题时，你必须在`Action`字段中使用`Finish(answer="...)`格式。
+- `Finish[最终答案]`:当你确定已经获得了最终答案时，必须在Action字段后使用此格式。
 
 现在，请开始解决以下问题
 Question: {question}
@@ -36,66 +35,49 @@ class ReActAgent:
 
         while current_step < self.max_steps:
             current_step += 1 
-            if VERBOSE:
-                print(f"Step {current_step}:")
 
             tools_desc = self.tool_executor.getAvailableTools()
             history_str = "\n".join(self.history)
 
             prompt = React_Prompt_Template.format(tools = tools_desc,question = question,history = history_str)
-            print(f"Prompt: {prompt}")
 
 
 
             messages = [{"role":"user","content":prompt}] #工具描述+问题+历史记录
             response = self.llm_client.think(messages)
 
-            if not response:
-                if VERBOSE:
-                    print("No response from LLM.")
-                break
-
             thought,action = self._parse_output(response)
-            if thought:print(f"Thought: {thought}")
-            if not action:
-                if VERBOSE:
-                    print("No action from LLM.")
-                break
+            print(f"{current_step}步的输出: {thought},{action}")
+
+
+            import time
             if action.startswith("Finish"):
+                time.sleep(5)
                 final_ans = self._parse_action_out(action)
-                print(f"Final Answer: {final_ans}")
+                print(f"最终答案: {final_ans}")
                 return final_ans
             
             #
             tool_name,tool_input = self._parse_action(action)
-            if not tool_name or not tool_input:
-                self.history.append("Observation: Invalid action format.")
-                continue
 
-            print(f"Calling Tool: {tool_name} with Input: {tool_input}")
-            tool_func = tool_executor.getTool(tool_name)
-            # print(type(tool_func))
-            if not tool_func:
-                self.history.append("Observation: Tool not found.")
-                continue
             try:
+                tool_func = tool_executor.getTool(tool_name)
                 tool_output = tool_func(tool_input)
-                print(f"观察: {tool_output}")
                 self.history.append(f"Action: {action}")
                 self.history.append(f"Observation: {tool_output}")
             except Exception as e:
                 self.history.append(f"Observation: Error calling tool {tool_name}: {e}")
                 continue
-            finally:
-                print(f"Step {current_step} completed.History: {self.history}")
+
 
         print("Max steps reached. No final answer.")
         return self.history[-1]
 
 
     def _parse_output(self,text:str):
-        thought_match = re.search(r"Thought:(.*)",text)
-        action_match  = re.search(r"Action:(.*)",text)
+        # 使用 re.DOTALL 标志，让 . 匹配换行符，支持多行内容
+        thought_match = re.search(r"Thought:(.*)",text, re.DOTALL)
+        action_match  = re.search(r"Action:(.*)",text, re.DOTALL)
         if thought_match and action_match:
             thought = thought_match.group(1).strip()
             action = action_match.group(1).strip()
@@ -111,7 +93,9 @@ class ReActAgent:
         return None,None
 
     def _parse_action_out(self,action:str):
-        finish_match = re.search(r"Finish\(answer=\"(.*)\"\)",action)
+        # 匹配 Finish[answer="..."] 格式，支持多行内容
+        # 使用 re.DOTALL 让 . 匹配换行符，使用非贪婪匹配到第一个 "]
+        finish_match = re.search(r"Finish\[(.*)\]", action, re.DOTALL)
         if finish_match:
             return finish_match.group(1).strip()
         return None
@@ -124,7 +108,7 @@ search_desc = "一个用于搜索互联网的工具，输入是一个查询字�
 tool_executor.registerTool("search",search_desc,search)
 
 agent = ReActAgent(llm_client,tool_executor,9)
-question = "女生的身上为什么香"
+question = "白丝和黑丝给男生的诱惑不一样吗"
 agent.run(question)
 
             
