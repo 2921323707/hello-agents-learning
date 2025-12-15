@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re 
+import time
 from llm_client_simulate import HelloAgentsLLM
 from tools_simulate import search,ToolExecutor
 
@@ -59,11 +60,120 @@ class ReactAgent:
                 {"role":"user","content":prompt}
             ]
 
-            response = self.client.think(messages)
-            
-            #DEBUG
-            break
 
+            #----------------------------------------
+
+
+            response = self.client.think(messages)
+
+            #解析响应
+            thought,action = self._parse_llm_response(response)
+
+            # #DEBUG
+            # #分析提取结果
+            # print(f"action:\n{action}")
+
+            
+
+            if action.startswith("Finish"):
+                if VERBOSE:
+                    print("成功捕捉Finish指令，准备退出")
+                time.sleep(3)
+                res = self._parse_finish(action)
+                
+                if res:
+                    return res 
+                return 
+            
+
+            #执行工具section
+            tool_name,tool_input = self._parse_action(action)
+
+
+            if tool_name and tool_input:
+                tool_func = self.tool_executor.getTool(tool_name) #检查返回类型!
+
+                if VERBOSE:
+                    print(type(tool_func))
+
+             
+
+
+                #执行工具
+                tool_res = tool_func(tool_input)
+                # print(f"工具 {tool_name} 执行结果: {tool_res}")
+
+                #历史记录更新
+                self.history.append(f"Action:{action}")
+                self.history.append(f"Observation:{tool_res}")
+                
+        print("达到最大步数，退出")
+        return
+                
+
+
+            
+
+
+            
+            
+
+
+    #定义解析方法
+    #解析llm响应
+    def _parse_llm_response(self,response:str):
+        """   
+        解析llm的响应，提取Thought和Action
+        Args:
+            response (str): llm的响应字符串
+        Returns:
+            tuple: (thought,action) 包含解析后的思考过程和行动
+        """
+        thought_match = re.search(r"Thought[:：](.*)Action[:：]",response,re.DOTALL)
+        action_match = re.search(r"Action[:：](.*)",response,re.DOTALL)
+
+        if thought_match and action_match:
+            thought = thought_match.group(1).strip()
+            action = action_match.group(1).strip()
+
+            return thought,action
+        
+        print(f"无法解析响应: {response}")
+        return None,None
+    
+
+
+
+
+    #解析action中的工具调用
+    def _parse_action(self,action:str):
+        tool_match = re.search(r"(\w+)\[(.+)\]",action)
+        if tool_match:
+            tool_name = tool_match.group(1).strip()
+            tool_input = tool_match.group(2).strip()
+
+            return tool_name,tool_input
+        return None,None
+
+
+
+
+
+
+    #解析最终finish
+    def _parse_finish(self,action:str):
+        """    
+        解析Finish指令，提取最终答案
+        Params:
+            action (str): Finish指令字符串，格式为"Finish[最终答案]"
+        Returns:
+            str: 提取到的最终答案
+        """
+        finish_match = re.search(r"Finish\[(.*)\]",action,re.DOTALL)
+
+        if finish_match:
+            return finish_match.group(1).strip()
+        return "最终答案匹配出现问题啦"
 
 
 
@@ -84,6 +194,7 @@ if __name__ == "__main__":
     #run
     question = "" if not VERBOSE else input("请输入问题: ")
     answer = agent.run(question)
-    print(answer)
+
+    print(f"\n\n\n!!!!最终输出!!!!\n\n{answer}")
 
 
