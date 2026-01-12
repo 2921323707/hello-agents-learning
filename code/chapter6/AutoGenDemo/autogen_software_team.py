@@ -4,13 +4,17 @@ AutoGen 软件开发团队协作案例
 
 import os
 import asyncio
+from pathlib import Path
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
-# 加载环境变量
-load_dotenv()
+# 获取脚本所在目录
+script_dir = Path(__file__).parent
 
-# 先测试一个版本，使用 OpenAI 客户端
+# 加载环境变量（从脚本所在目录加载 .env 文件）
+load_dotenv(dotenv_path=script_dir / ".env")
+
+# 使用 OpenAI 兼容的客户端（支持 DeepSeek 等模型）
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
@@ -18,11 +22,27 @@ from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.ui import Console
 
 def create_openai_model_client():
-    """创建 OpenAI 模型客户端用于测试"""
+    """创建 DeepSeek 模型客户端"""
+    model = os.getenv("LLM_MODEL_ID", "deepseek-chat")
+    api_key = os.getenv("LLM_API_KEY")
+    base_url = os.getenv("LLM_BASE_URL", "https://api.deepseek.com/v1")
+    
+    # DeepSeek 模型的配置
+    model_info = {
+        "function_calling": True,
+        "max_tokens": 4096,
+        "context_length": 32768,
+        "vision": False,
+        "json_output": True,
+        "family": "deepseek",
+        "structured_output": True,
+    }
+    
     return OpenAIChatCompletionClient(
-        model=os.getenv("LLM_MODEL_ID", "gpt-4o"),
-        api_key=os.getenv("LLM_API_KEY"),
-        base_url=os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
+        model=model,
+        api_key=api_key,
+        base_url=base_url,
+        model_info=model_info
     )
 
 def create_product_manager(model_client):
@@ -118,7 +138,7 @@ async def run_software_development_team():
     
     print("🔧 正在初始化模型客户端...")
     
-    # 先使用标准的 OpenAI 客户端测试
+    # 创建 DeepSeek 模型客户端
     model_client = create_openai_model_client()
     
     print("👥 正在创建智能体团队...")
